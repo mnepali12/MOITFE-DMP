@@ -1,0 +1,7 @@
+{
+  "name": "MOITFE Karnali DMP",
+  "description": "Comprehensive Industry, Tourism, Forest and Environment data collection, management, and visualization portal for the Ministry of Industry, Tourism, Forest and Environment.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
