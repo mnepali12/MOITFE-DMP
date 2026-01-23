@@ -10,17 +10,32 @@ import { DataTablePage } from './pages/DataTablePage';
 import { Login } from './pages/Login';
 import { UserManagement } from './pages/UserManagement';
 import { Role, User, ForestRecord, IndustryRecord, CommerceRecord } from './types';
-import { mockForestData, mockIndustryData, mockCommerceData } from './mockData';
+import { googleDb } from './db';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [forestRecords, setForestRecords] = useState<ForestRecord[]>(mockForestData);
-  const [industryRecords, setIndustryRecords] = useState<IndustryRecord[]>(mockIndustryData);
-  const [commerceRecords, setCommerceRecords] = useState<CommerceRecord[]>(mockCommerceData);
+  const [forestRecords, setForestRecords] = useState<ForestRecord[]>([]);
+  const [industryRecords, setIndustryRecords] = useState<IndustryRecord[]>([]);
+  const [commerceRecords, setCommerceRecords] = useState<CommerceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('mitfe_user');
     if (savedUser) setUser(JSON.parse(savedUser));
+
+    const initDb = async () => {
+      setIsLoading(true);
+      await googleDb.init();
+      const forest = await googleDb.getForestRecords();
+      const industry = await googleDb.getIndustryRecords();
+      const commerce = await googleDb.getCommerceRecords();
+      setForestRecords(forest);
+      setIndustryRecords(industry);
+      setCommerceRecords(commerce);
+      setIsLoading(false);
+    };
+
+    initDb();
   }, []);
 
   const handleLogin = (u: User) => {
@@ -33,31 +48,61 @@ const App: React.FC = () => {
     localStorage.removeItem('mitfe_user');
   };
 
-  const addForestRecord = (record: ForestRecord) => setForestRecords(prev => [record, ...prev]);
-  const addIndustryRecord = (record: IndustryRecord) => setIndustryRecords(prev => [record, ...prev]);
-  const addCommerceRecord = (record: CommerceRecord) => setCommerceRecords(prev => [record, ...prev]);
-
-  const updateForestStatus = (id: string, status: ForestRecord['status']) => {
-    setForestRecords(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  const addForestRecord = async (record: ForestRecord) => {
+    await googleDb.saveForestRecord(record);
+    const updated = await googleDb.getForestRecords();
+    setForestRecords(updated);
   };
 
-  const updateIndustryStatus = (id: string, status: IndustryRecord['verificationStatus']) => {
-    setIndustryRecords(prev => prev.map(r => r.id === id ? { ...r, verificationStatus: status } : r));
+  const addIndustryRecord = async (record: IndustryRecord) => {
+    await googleDb.saveIndustryRecord(record);
+    const updated = await googleDb.getIndustryRecords();
+    setIndustryRecords(updated);
   };
 
-  const updateCommerceStatus = (id: string, status: CommerceRecord['status']) => {
-    setCommerceRecords(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  const addCommerceRecord = async (record: CommerceRecord) => {
+    await googleDb.saveCommerceRecord(record);
+    const updated = await googleDb.getCommerceRecords();
+    setCommerceRecords(updated);
+  };
+
+  const updateForestStatus = async (id: string, status: ForestRecord['status']) => {
+    await googleDb.updateForestStatus(id, status);
+    const updated = await googleDb.getForestRecords();
+    setForestRecords(updated);
+  };
+
+  const updateIndustryStatus = async (id: string, status: IndustryRecord['verificationStatus']) => {
+    await googleDb.updateIndustryStatus(id, status);
+    const updated = await googleDb.getIndustryRecords();
+    setIndustryRecords(updated);
+  };
+
+  const updateCommerceStatus = async (id: string, status: CommerceRecord['status']) => {
+    await googleDb.updateCommerceStatus(id, status);
+    const updated = await googleDb.getCommerceRecords();
+    setCommerceRecords(updated);
   };
 
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-500 font-medium animate-pulse">Syncing with Google Database...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Router>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          {/* Fix: Added missing commerceRecords prop to Dashboard component */}
           <Route path="/" element={<Dashboard forestRecords={forestRecords} industryRecords={industryRecords} commerceRecords={commerceRecords} />} />
           <Route path="/forest-entry" element={<ForestDataEntry onSave={addForestRecord} user={user} />} />
           <Route path="/industry-entry" element={<IndustryDataEntry onSave={addIndustryRecord} user={user} />} />

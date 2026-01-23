@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { ForestRecord, User } from '../types';
-import { Save, FileCheck, Trash2, TreePine, Calendar } from 'lucide-react';
+import { Save, FileCheck, Trash2, TreePine, Calendar, Loader2 } from 'lucide-react';
 
 interface ForestDataEntryProps {
-  onSave: (record: ForestRecord) => void;
+  onSave: (record: ForestRecord) => Promise<void>;
   user: User;
 }
 
 export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<ForestRecord>>({
     sn: '', office: '', date: new Date().toISOString().split('T')[0],
     current_allocation: 0, capital_allocation: 0, current_expenditure: 0, capital_expenditure: 0,
@@ -24,12 +25,13 @@ export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }
     setFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
-  const handleSubmit = (status: ForestRecord['status']) => {
+  const handleSubmit = async (status: ForestRecord['status']) => {
     if (!formData.office) {
       alert('कार्यालय अनिवार्य छ। (Office is required)');
       return;
     }
     
+    setIsSaving(true);
     const record: ForestRecord = {
       ...formData as ForestRecord,
       id: `F-${Date.now()}`,
@@ -37,8 +39,18 @@ export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }
       createdBy: user.id
     };
 
-    onSave(record);
-    alert('विवरण सुरक्षित भयो। (Record saved successfully)');
+    try {
+      await onSave(record);
+      alert('विवरण सुरक्षित भयो। (Record saved successfully to Google Database)');
+      setFormData({
+        ...formData,
+        sn: '', office: '',
+      });
+    } catch (err) {
+      alert('डेटाबेस त्रुटि: विवरण सुरक्षित हुन सकेन।');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -62,7 +74,6 @@ export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }
         </div>
 
         <form className="space-y-8">
-          {/* Main Content Area without specific headings */}
           <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">सि.नं.</label>
@@ -129,7 +140,8 @@ export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }
           <div className="flex items-center justify-between pt-10 border-t border-slate-100">
             <button 
               type="button"
-              className="flex items-center gap-2 px-8 py-3 rounded-xl text-slate-500 hover:bg-slate-100 font-bold transition-all"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl text-slate-500 hover:bg-slate-100 font-bold transition-all disabled:opacity-50"
               onClick={() => { if(confirm('परिवर्तनहरू खारेज गर्ने?')) window.history.back() }}
             >
               <Trash2 size={18} /> रद्द गर्नुहोस् (Discard)
@@ -137,17 +149,27 @@ export const ForestDataEntry: React.FC<ForestDataEntryProps> = ({ onSave, user }
             <div className="flex gap-4">
               <button 
                 type="button"
-                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold transition-all"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold transition-all disabled:opacity-50"
                 onClick={() => handleSubmit('Pending')}
               >
                 <Save size={18} /> ड्राफ्ट (Save Draft)
               </button>
               <button 
                 type="button"
-                className="flex items-center gap-2 px-10 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 font-bold shadow-xl shadow-green-200 transition-all scale-105 active:scale-100"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-10 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 font-bold shadow-xl shadow-green-200 transition-all scale-105 active:scale-100 disabled:opacity-50 disabled:scale-100"
                 onClick={() => handleSubmit('Pending')}
               >
-                <FileCheck size={18} /> पेश गर्नुहोस् (Submit)
+                {isSaving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Syncing...
+                  </>
+                ) : (
+                  <>
+                    <FileCheck size={18} /> पेश गर्नुहोस् (Submit)
+                  </>
+                )}
               </button>
             </div>
           </div>

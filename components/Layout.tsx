@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -12,8 +13,9 @@ import {
   X,
   User as UserIcon,
   ChevronRight,
-  Settings,
-  Bell
+  Bell,
+  CloudCheck,
+  Database
 } from 'lucide-react';
 import { User, Role } from '../types';
 
@@ -34,7 +36,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { name: 'Commerce Entry', path: '/commerce-entry', icon: ShoppingBag, roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.ENUMERATOR] },
     { name: 'Data Tables', path: '/data-tables', icon: Table, roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.ENUMERATOR, Role.VIEWER] },
     { name: 'User Management', path: '/users', icon: Users, roles: [Role.SUPER_ADMIN] },
-    { name: 'Settings', path: '/settings', icon: Settings, roles: [Role.SUPER_ADMIN, Role.ADMIN] },
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.role));
@@ -87,9 +88,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
-          <button className="md:hidden text-slate-600" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-4">
+            <button className="md:hidden text-slate-600" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full border border-green-100">
+              <Database size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Google DB: Connected</span>
+            </div>
+          </div>
           
           <div className="hidden md:block">
             <h2 className="text-lg font-semibold text-slate-800">

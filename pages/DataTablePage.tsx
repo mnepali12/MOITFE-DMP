@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ForestRecord, IndustryRecord, CommerceRecord, User, Role } from '../types';
-import { Download, Upload, Search, Filter, Check, X, Eye } from 'lucide-react';
+import { Download, Search, Check, X, Eye } from 'lucide-react';
 
 interface DataTablePageProps {
   forestRecords: ForestRecord[];
@@ -41,6 +41,54 @@ export const DataTablePage: React.FC<DataTablePageProps> = ({
     r.month.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExport = () => {
+    let dataToExport: any[] = [];
+    let filename = '';
+
+    if (activeTab === 'Forest') {
+      dataToExport = filteredForest;
+      filename = `Forest_Records_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeTab === 'Industry') {
+      dataToExport = filteredIndustry;
+      filename = `Industry_Records_${new Date().toISOString().split('T')[0]}.csv`;
+    } else {
+      dataToExport = filteredCommerce;
+      filename = `Commerce_Records_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+
+    if (dataToExport.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    // Convert data to CSV
+    const headers = Object.keys(dataToExport[0]);
+    const csvContent = [
+      headers.join(','), // Header row
+      ...dataToExport.map(row => 
+        headers.map(fieldName => {
+          const value = row[fieldName];
+          // Handle values with commas or quotes
+          const stringValue = value !== null && value !== undefined ? String(value) : '';
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -76,8 +124,11 @@ export const DataTablePage: React.FC<DataTablePageProps> = ({
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold text-xs hover:bg-slate-900 transition-colors">
-            <Download size={16} /> Export
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold text-xs hover:bg-slate-900 transition-colors"
+          >
+            <Download size={16} /> Export CSV
           </button>
         </div>
       </div>
